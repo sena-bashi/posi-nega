@@ -17,23 +17,21 @@
         - 正解ラベルは見ず、投稿文だけを取得する
 - 出力は投稿文を key に、判定ラベルを value にした json で返す
     - `output/`に保存する
-- ラベルは、{1: positive, 0: negative}とする
+- ラベルは、ポジティブならば pos とし、ネガティブならば neg とする
 - 入力を受けて、ポジティブかネガティブかを判定し、結果を出力する
 2. ルールで解く: 単語リストで判定し、正解数を数える
-- 形態素解析器で入力の投稿文を分かち書きをリストで受け取り、ポジティブ単語リスト(posi_list)とネガティブ単語リスト(nega_list)を用いて判定する
+- 形態素解析器で入力の投稿文を分かち書きし、得られた原形をポジネガ辞書(pn_dict)を用いて判定する
+    - pn_dict は key を形態素、 value をラベルとする
+    - pn_dict の value に使うラベルは{1: positive, -1: negative, 0: else}
 - 今回のルールでは、重みは考えない
-- 分かち書きリスト(token_list)の要素を最初から確認し、要素を key に、以下のルールによってつけられる値を value にした辞書(token_dict)を作る 
-    - token_list の要素が posi_list に含まれる要素と一致すれば 1 を value にする
-    - token_list の要素が nega_list に含まれる要素と一致すれば -1 を value にする
-    - token_list の要素が posi_list, nega_list のいずれの要素とも一致しなければ 0 を value にする
+- 原形を最初から順に確認し、出現した原形を key に、以下のルールによってつけられる値を value にした辞書(token_dict)を作る 
+    - token_list の要素が pn_dict に含まれる key と一致し、その value が 1 であれば token_dict の value を 1 にする
+    - token_list の要素が pn_dict に含まれる key と一致し、その value が -1 であれば　token_dict の value を -1 にする
+    - token_list の要素が pn_dict に含まれる key と一致するが、その value が 0 であれば token_dict の value を 0 にする
+    - token_list の要素が pn_dict のいずれの key とも一致しなければ token_dict の value にする
 - 作った token_dict の value の合計(score)によってポジネガを判定する
-    - score > 0 ならば 1 を返す
-    - score < 0 ならば 0 を返す
-    - score = 0 のとき、 token_dict を最後の value から順に取得する
-        - 0 であれば一つ前の value を取得する
-        - 1 であればその時点で 1 を返す
-        - -1 であればその時点で 0 を返す
-        - 一番最初の value まで取得し、すべて 0 であれば、 1 を返す
+    - score >= 0 ならば pos を返す
+    - score < 0 ならば neg を返す
 
 ## 手順2. LLMで解いて比べる
 3. LLMで解く: 同じデータをLLMで判定し、正解数を数える
